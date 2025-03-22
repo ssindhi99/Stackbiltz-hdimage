@@ -8,6 +8,7 @@ import "./NavigationBar.css";
 function NavigationBar() {
   return (
     <>
+      <HeaderBar />
       <Outlet />
       <FooterBar />
     </>

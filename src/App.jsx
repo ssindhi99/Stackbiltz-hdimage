@@ -3,7 +3,7 @@ import NavigationBar from "./pages/NavigationBar";
 import HomePage from "./pages/HomePage";
 import ImageUpscaler from "./components/ImageUpscaler";
 import ImageEditor from "./components/ImageEditor";
-import ImagerMerger from "./components/ImagerMerger";
+import ImageMerger from "./components/ImageMerger";
 
 import {
   createBrowserRouter,
@@ -34,7 +34,7 @@ function App() {
 
         {
           path: "image-merge",
-          element: <ImagerMerger />,
+          element: <ImageMerger />,
         },
       ],
     },

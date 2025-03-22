@@ -86,7 +86,7 @@ const ImageEditor = () => {
 
   return (
     <div className="container image-editor-container">
-      <h3 className="text-center my-3">Image Editor</h3>
+      <h3 className="text-center my-3">Resize Image</h3>
 
       {/* Image Upload Button (Fixed) */}
       <div className="mb-3 text-center">

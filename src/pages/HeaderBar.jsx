@@ -29,12 +29,12 @@ const HeaderBar = () => {
             </li>
             <li>
               <Link to="/resize" onClick={() => setMenuOpen(false)}>
-                ReSize Image
+                Resize Image
               </Link>
             </li>
             <li>
               <Link to="/image-merge" onClick={() => setMenuOpen(false)}>
-                Ai Image
+                Image Merge
               </Link>
             </li>
           </ul>
