@@ -1,6 +1,6 @@
 /* ImageMerger.css */
 
-.container {
+.image-merger-container {
   max-width: 800px;
   margin: 40px auto;
   padding: 20px;
@@ -9,20 +9,21 @@
   border-radius: 12px;
   text-align: center;
   font-family: "Arial", sans-serif;
+  margin-top: 100px;
 }
 
-.dropzone {
+.image-merger-dropzone {
   border: 2px dashed #4a90e2;
   padding: 20px;
   cursor: pointer;
   transition: background 0.3s ease-in-out;
 }
 
-.dropzone:hover {
+.image-merger-dropzone:hover {
   background: #f1f1f1;
 }
 
-.image-preview {
+.image-merger-preview {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -30,7 +31,7 @@
   margin: 20px 0;
 }
 
-.preview-img {
+.image-merger-preview-img {
   width: 100px;
   height: 100px;
   object-fit: cover;
@@ -39,18 +40,18 @@
   transition: transform 0.2s ease-in-out;
 }
 
-.preview-img:hover {
+.image-merger-preview-img:hover {
   transform: scale(1.05);
 }
 
-.options {
+.image-merger-options {
   display: flex;
   justify-content: center;
   gap: 10px;
   margin: 15px 0;
 }
 
-.button {
+.image-merger-button {
   padding: 10px 20px;
   background: #4a90e2;
   color: white;
@@ -60,15 +61,15 @@
   transition: background 0.3s ease-in-out;
 }
 
-.button.active {
+.image-merger-button.active {
   background: #357abd;
 }
 
-.button:hover {
+.image-merger-button:hover {
   background: #357abd;
 }
 
-.color-picker {
+.image-merger-color-picker {
   border: none;
   cursor: pointer;
   width: 40px;
@@ -79,7 +80,7 @@ input[type="range"] {
   width: 150px;
 }
 
-.merge-button {
+.image-merger-merge-button {
   margin: 20px 0;
   padding: 12px 24px;
   font-size: 16px;
@@ -91,11 +92,11 @@ input[type="range"] {
   transition: background 0.3s ease-in-out;
 }
 
-.merge-button:hover {
+.image-merger-merge-button:hover {
   background: #219150;
 }
 
-.canvas {
+.image-merger-canvas {
   width: 100%;
   max-width: 600px;
   margin: 20px auto;
@@ -104,21 +105,21 @@ input[type="range"] {
   border-radius: 8px;
 }
 
-.save-options {
+.image-merger-save-options {
   display: flex;
   justify-content: center;
   gap: 10px;
   margin-top: 15px;
 }
 
-.dropdown {
+.image-merger-dropdown {
   padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid #ddd;
   cursor: pointer;
 }
 
-.save-button {
+.image-merger-save-button {
   padding: 10px 20px;
   background: #e74c3c;
   color: white;
@@ -128,22 +129,22 @@ input[type="range"] {
   transition: background 0.3s ease-in-out;
 }
 
-.save-button:hover {
+.image-merger-save-button:hover {
   background: #c0392b;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .image-preview {
+  .image-merger-preview {
     flex-direction: column;
     align-items: center;
   }
 
-  .options {
+  .image-merger-options {
     flex-wrap: wrap;
   }
 
-  .preview-img {
+  .image-merger-preview-img {
     width: 80px;
     height: 80px;
   }

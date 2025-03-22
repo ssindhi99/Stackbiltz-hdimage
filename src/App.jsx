@@ -3,6 +3,7 @@ import NavigationBar from "./pages/NavigationBar";
 import HomePage from "./pages/HomePage";
 import ImageUpscaler from "./components/ImageUpscaler";
 import ImageEditor from "./components/ImageEditor";
+import ImagerMerger from "./components/ImagerMerger";
 
 import {
   createBrowserRouter,

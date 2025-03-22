@@ -1,134 +1,45 @@
-import React, { useState, useRef } from "react";
+import { useState } from "react";
 import { useDropzone } from "react-dropzone";
-import "./ImageMerger.css";
 
-const ImageMerger = () => {
+export default function ImageMerger() {
   const [images, setImages] = useState([]);
-  const [layout, setLayout] = useState("horizontal");
-  const [borderSize, setBorderSize] = useState(5);
-  const [borderColor, setBorderColor] = useState("#000000");
-  const [fileType, setFileType] = useState("png");
-  const canvasRef = useRef(null);
 
   const onDrop = (acceptedFiles) => {
-    acceptedFiles.forEach((file) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-        setImages((prev) => [...prev, img]);
-      };
-    });
+    const newImages = acceptedFiles.map((file) =>
+      Object.assign(file, { preview: URL.createObjectURL(file) })
+    );
+    setImages([...images, ...newImages]);
   };
 
-  const { getRootProps, getInputProps } = useDropzone({
-    onDrop,
-    accept: "image/*",
-  });
-
-  const mergeImages = () => {
-    if (images.length < 2) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-
-    const width =
-      layout === "horizontal"
-        ? images.reduce((sum, img) => sum + img.width, 0)
-        : Math.max(...images.map((img) => img.width));
-    const height =
-      layout === "vertical"
-        ? images.reduce((sum, img) => sum + img.height, 0)
-        : Math.max(...images.map((img) => img.height));
-    canvas.width = width + borderSize * (images.length - 1);
-    canvas.height = height + borderSize * (images.length - 1);
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = borderColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    let offsetX = 0,
-      offsetY = 0;
-    images.forEach((img) => {
-      ctx.drawImage(img, offsetX, offsetY, img.width, img.height);
-      if (layout === "horizontal") {
-        offsetX += img.width + borderSize;
-      } else {
-        offsetY += img.height + borderSize;
-      }
-    });
-  };
-
-  const saveImage = () => {
-    const canvas = canvasRef.current;
-    const link = document.createElement("a");
-    link.download = `merged-image.${fileType}`;
-    link.href = canvas.toDataURL(`image/${fileType}`);
-    link.click();
+  const mergeImages = async () => {
+    if (images.length < 2) return alert("Upload at least two images.");
+    // Implement image merging logic here (e.g., using canvas)
   };
 
   return (
-    <div className="container">
-      <div {...getRootProps()} className="dropzone">
-        <input {...getInputProps()} />
-        <p>Drag & Drop images here or click to upload</p>
+    <div className="flex flex-col items-center p-6 bg-gray-100 min-h-screen image-merger-container">
+      <div
+        {...useDropzone({ onDrop, accept: "image/*", multiple: true })}
+        className="w-full max-w-xl p-6 border-2 border-dashed border-gray-300 rounded-lg bg-white flex justify-center items-center cursor-pointer hover:border-blue-500 transition"
+      >
+        <p className="text-gray-600">Drag & drop images or click to upload</p>
       </div>
-      <div className="image-preview">
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {images.map((img, index) => (
           <img
             key={index}
-            src={img.src}
-            alt={`Uploaded ${index + 1}`}
-            className="preview-img"
+            src={img.preview}
+            alt="Uploaded"
+            className="w-32 h-32 object-cover rounded-lg shadow"
           />
         ))}
       </div>
-      <div className="options">
-        <button
-          onClick={() => setLayout("horizontal")}
-          className={`button ${layout === "horizontal" ? "active" : ""}`}
-        >
-          Horizontal
-        </button>
-        <button
-          onClick={() => setLayout("vertical")}
-          className={`button ${layout === "vertical" ? "active" : ""}`}
-        >
-          Vertical
-        </button>
-      </div>
-      <div className="options">
-        <input
-          type="range"
-          min="0"
-          max="20"
-          value={borderSize}
-          onChange={(e) => setBorderSize(e.target.value)}
-        />
-        <input
-          type="color"
-          value={borderColor}
-          onChange={(e) => setBorderColor(e.target.value)}
-          className="color-picker"
-        />
-      </div>
-      <button onClick={mergeImages} className="merge-button">
+      <button
+        onClick={mergeImages}
+        className="mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg shadow-lg"
+      >
         Merge Images
       </button>
-      <canvas ref={canvasRef} className="canvas" />
-      <div className="save-options">
-        <select
-          onChange={(e) => setFileType(e.target.value)}
-          value={fileType}
-          className="dropdown"
-        >
-          <option value="png">PNG</option>
-          <option value="jpg">JPG</option>
-        </select>
-        <button onClick={saveImage} className="save-button">
-          Save Image
-        </button>
-      </div>
     </div>
   );
-};
-
-export default ImageMerger;
+}

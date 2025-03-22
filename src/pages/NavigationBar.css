@@ -10,7 +10,7 @@
 header {
   background-color: #1a1a2e;
   padding: 15px 20px;
-  position: sticky;
+  position: fixed;
   top: 0;
   width: 100%;
   z-index: 1000;
