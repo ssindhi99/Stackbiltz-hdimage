@@ -25,13 +25,13 @@ const FooterBar = () => {
               <a href="#">Home</a>
             </li>
             <li>
-              <a href="#">Features</a>
+              <a href="#">Upscaler</a>
             </li>
             <li>
-              <a href="#">Pricing</a>
+              <a href="#">Image Resize</a>
             </li>
             <li>
-              <a href="#">Contact</a>
+              <a href="#">Image Merge</a>
             </li>
           </ul>
         </div>

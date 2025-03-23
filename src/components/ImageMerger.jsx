@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toPng } from "html-to-image";
-import GridLayout from "react-grid-layout";
-import "./ImageMerger.css"; // Updated CSS filename
+import "./ImageMerger.css";
 
 export default function ImageMerger() {
   const [images, setImages] = useState([]);
@@ -98,6 +97,7 @@ export default function ImageMerger() {
           />
         </label>
       </div>
+
       <div className="imagecollage_borderflex">
         <div className="imagecollage_bordercolor">
           <label className="imagecollage_bordertext">
@@ -132,8 +132,10 @@ export default function ImageMerger() {
         id="collage"
         className="image-collage__preview"
         style={{
+          display: "grid",
           gridTemplateRows: `repeat(${rows}, 1fr)`,
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gap: "5px",
         }}
       >
         {images.slice(0, rows * cols).map((image, index) => (
