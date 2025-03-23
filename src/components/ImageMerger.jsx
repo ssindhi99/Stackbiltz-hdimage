@@ -4,7 +4,7 @@ import { toPng } from "html-to-image";
 import GridLayout from "react-grid-layout";
 import "./ImageMerger.css"; // Updated CSS filename
 
-export default function ImageCollage() {
+export default function ImageMerger() {
   const [images, setImages] = useState([]);
   const [rows, setRows] = useState(2);
   const [cols, setCols] = useState(2);

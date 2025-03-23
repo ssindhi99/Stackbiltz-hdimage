@@ -5,9 +5,9 @@ const ImageUpscaler = () => {
   const [images, setImages] = useState([]);
   const canvasRefs = useRef({});
 
-  const handleImageUpload = (event) => {
-    const files = Array.from(event.target.files);
-    const newImages = files.map((file) => {
+  const handleFiles = (files) => {
+    const fileArray = Array.from(files);
+    const newImages = fileArray.map((file) => {
       const objectURL = URL.createObjectURL(file);
       const img = new Image();
       img.src = objectURL;
@@ -36,6 +36,19 @@ const ImageUpscaler = () => {
     });
 
     Promise.all(newImages).then((result) => setImages([...images, ...result]));
+  };
+
+  const handleImageUpload = (event) => {
+    handleFiles(event.target.files);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    handleFiles(event.dataTransfer.files);
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
   };
 
   const renderCanvas = (image) => {
@@ -85,29 +98,36 @@ const ImageUpscaler = () => {
   const removeAllImages = () => setImages([]);
 
   return (
-    <div className="image-upscaler">
-      <div className="top-buttons">
-        <label className="upload-label">
-          Upload Images
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleImageUpload}
-          />
-        </label>
-
-        {images.length > 0 && (
-          <div className="action-buttons">
-            <button className="download-btn" onClick={downloadAllImages}>
-              Download All HD Images
-            </button>
-            <button className="remove-btn" onClick={removeAllImages}>
-              New Images
-            </button>
-          </div>
-        )}
+    <div
+      className="image-upscaler"
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+    >
+      <div
+        className="drop-zone"
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+      >
+        Drag & Drop or Click to Select Images
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleImageUpload}
+          className="file-input"
+        />
       </div>
+
+      {images.length > 0 && (
+        <div className="action-buttons">
+          <button className="download-btn" onClick={downloadAllImages}>
+            Download All HD Images
+          </button>
+          <button className="remove-btn" onClick={removeAllImages}>
+            New Images
+          </button>
+        </div>
+      )}
 
       {images.length > 0 && (
         <div className="image-list">

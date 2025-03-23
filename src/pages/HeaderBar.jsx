@@ -1,49 +1,42 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { FiMenu, FiX } from "react-icons/fi";
 import "./HeaderBar.scss";
 
 const HeaderBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    setMenuOpen(false); // Close menu when route changes
+  }, [location]);
 
   return (
     <header className="header">
       <div className="container">
-        {/* Logo */}
         <h1 className="logo">
           <Link to="/">PhotoEditPro</Link>
         </h1>
 
-        {/* Navigation Links */}
         <nav className={`nav-menu ${menuOpen ? "active" : ""}`}>
           <ul>
-            <li>
-              <Link to="/" onClick={() => setMenuOpen(false)}>
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link to="/Upscaler" onClick={() => setMenuOpen(false)}>
-                Up Scaler
-              </Link>
-            </li>
-            <li>
-              <Link to="/resize" onClick={() => setMenuOpen(false)}>
-                Resize Image
-              </Link>
-            </li>
-            <li>
-              <Link to="/image-merge" onClick={() => setMenuOpen(false)}>
-                Image Merge
-              </Link>
-            </li>
+            {["/", "/Upscaler", "/resize", "/image-merge"].map(
+              (path, index) => (
+                <li key={index}>
+                  <Link to={path}>{path.replace("/", "") || "Home"}</Link>
+                </li>
+              )
+            )}
           </ul>
         </nav>
 
-        {/* Mobile Menu Icon */}
-        <div className="menu-icon" onClick={() => setMenuOpen(!menuOpen)}>
+        <button
+          className="menu-icon"
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle menu"
+        >
           {menuOpen ? <FiX /> : <FiMenu />}
-        </div>
+        </button>
       </div>
     </header>
   );

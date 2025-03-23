@@ -2,22 +2,27 @@
 .image-collage__container {
   padding: 1.5rem;
   max-width: 52rem;
-  margin: auto;
+  margin: 2rem auto;
   font-family: "Inter", sans-serif;
   background: #ffffff;
-  margin-top: 7rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Dropzone Styling */
 .image-collage__dropzone {
   border: 2px dashed #aaa;
-  padding: 1.5rem;
-  text-align: center;
+  padding: 1.8rem;
   background: linear-gradient(135deg, #f9f9f9, #eaeaea);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease-in-out;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
 }
 
 .image-collage__dropzone:hover {
@@ -26,18 +31,13 @@
   transform: scale(1.02);
 }
 
-.image-collage__dropzone p {
-  color: #444;
-  font-size: 1rem;
-  font-weight: 500;
-}
-
 /* Control Panel */
 .image-collage__controls {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1rem;
-  margin-top: 1.2rem;
+  margin: 2rem;
 }
 
 .image-collage__controls label {
@@ -46,8 +46,10 @@
   font-size: 0.9rem;
   font-weight: 600;
   color: #333;
+  text-align: left;
 }
 
+/* Input Styling */
 .image-collage__input {
   border: 1px solid #ccc;
   padding: 0.6rem;
@@ -65,23 +67,13 @@
 }
 
 /* Border Customization */
-.image-collage__border {
+.imagecollage_borderflex {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.image-collage__border-preview {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 3px solid #000;
-  transition: all 0.3s ease-in-out;
-}
-
-.image-collage__border-preview:hover {
-  transform: scale(1.1);
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
 }
 
 /* Color Picker */
@@ -92,22 +84,13 @@
   cursor: pointer;
   border-radius: 5px;
   transition: all 0.2s ease-in-out;
-  margin-left: 20px;
-}
-
-.imagecollage_borderflex {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  margin-top: 1rem;
-  text-align: center;
 }
 
 .image-collage__color-picker:hover {
   transform: scale(1.05);
 }
 
-/* Improved Modern Slider */
+/* Slider */
 .image-collage__slider {
   -webkit-appearance: none;
   width: 100%;
@@ -117,28 +100,10 @@
   outline: none;
   opacity: 0.9;
   transition: opacity 0.2s ease-in-out;
-  margin-top: 1rem;
 }
 
 .image-collage__slider:hover {
   opacity: 1;
-}
-
-/* Slider Thumb (for Chrome, Safari, Edge) */
-.image-collage__slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: white;
-  border: 3px solid #007bff;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-}
-
-.image-collage__slider::-webkit-slider-thumb:hover {
-  background: #007bff;
 }
 
 /* Image Collage Preview */
@@ -157,13 +122,13 @@
   transform: scale(1.01);
 }
 
-/* Individual Image Styling */
+/* Image Styling */
 .image-collage__image {
   object-fit: cover;
   width: 100%;
   height: 100%;
-  transition: all 0.3s ease-in-out;
   border-radius: 8px;
+  transition: all 0.3s ease-in-out;
 }
 
 .image-collage__image:hover {
@@ -195,7 +160,8 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .image-collage__controls {
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    flex-direction: column;
+    align-items: center;
   }
 
   .image-collage__dropzone {
