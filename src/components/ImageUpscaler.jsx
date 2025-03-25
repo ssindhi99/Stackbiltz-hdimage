@@ -51,47 +51,61 @@ const ImageUpscaler = () => {
     event.preventDefault();
   };
 
-  const renderCanvas = (image) => {
+  const renderCanvas = (image, isPreview = false) => {
     if (!canvasRefs.current[image.id]) return;
 
     const canvas = canvasRefs.current[image.id];
     const ctx = canvas.getContext("2d");
 
+    const width = isPreview ? 200 : image.upscaledSize.width;
+    const height = isPreview ? 100 : image.upscaledSize.height;
+
+    canvas.width = width;
+    canvas.height = height;
+
     const img = new Image();
     img.src = image.src;
     img.onload = () => {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, width, height);
+    };
+  };
+
+  const downloadAllImages = () => {
+    images.forEach((image) => {
       const offscreenCanvas = document.createElement("canvas");
       const offscreenCtx = offscreenCanvas.getContext("2d");
 
       offscreenCanvas.width = image.upscaledSize.width;
       offscreenCanvas.height = image.upscaledSize.height;
 
-      offscreenCtx.imageSmoothingEnabled = true;
-      offscreenCtx.imageSmoothingQuality = "high";
-      offscreenCtx.drawImage(
-        img,
-        0,
-        0,
-        offscreenCanvas.width,
-        offscreenCanvas.height
-      );
+      const img = new Image();
+      img.src = image.src;
+      img.onload = () => {
+        offscreenCtx.imageSmoothingEnabled = true;
+        offscreenCtx.imageSmoothingQuality = "high";
+        offscreenCtx.drawImage(
+          img,
+          0,
+          0,
+          offscreenCanvas.width,
+          offscreenCanvas.height
+        );
 
-      ctx.drawImage(offscreenCanvas, 0, 0);
-    };
-  };
+        offscreenCanvas.toBlob((blob) => {
+          const link = document.createElement("a");
+          const fileName = `${image.fileName.split(".")[0]}_HD.${
+            image.fileType.split("/")[1] || "png"
+          }`;
 
-  const downloadAllImages = () => {
-    images.forEach((image) => {
-      const canvas = canvasRefs.current[image.id];
-      if (!canvas) return;
+          link.href = URL.createObjectURL(blob);
+          link.download = fileName;
+          link.click();
 
-      const link = document.createElement("a");
-      const extension = image.fileType.split("/")[1] || "png";
-      const fileName = `${image.fileName.split(".")[0]}_HD.${extension}`;
-
-      link.download = fileName;
-      link.href = canvas.toDataURL(image.fileType);
-      link.click();
+          URL.revokeObjectURL(link.href);
+        }, image.fileType);
+      };
     });
   };
 
@@ -147,7 +161,7 @@ const ImageUpscaler = () => {
               <canvas
                 ref={(el) => {
                   canvasRefs.current[image.id] = el;
-                  renderCanvas(image);
+                  renderCanvas(image, true);
                 }}
               />
             </div>

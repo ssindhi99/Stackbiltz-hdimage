@@ -91,7 +91,8 @@
 
 canvas {
   border: 1px solid #ddd;
-  max-width: 100%;
-  height: auto;
+  width: 200px; /* Fixed preview width */
+  height: 100px; /* Fixed preview height */
   border-radius: 5px;
+  display: block;
 }
