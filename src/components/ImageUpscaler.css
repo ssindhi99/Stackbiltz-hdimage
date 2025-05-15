@@ -3,29 +3,40 @@
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  font-family: Arial, sans-serif;
+  font-family: "Arial", sans-serif;
+  background: #f0f0f0;
 }
 
 .drop-zone {
   width: 100%;
   max-width: 500px;
-  height: 200px;
-  border: 2px dashed #007bff;
+  height: 180px;
+  border: 2px dashed #b3b3b3;
   border-radius: 10px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: #007bff;
-  font-size: 18px;
-  font-weight: bold;
+  color: #333;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
   position: relative;
   margin-bottom: 20px;
+  background-color: white;
+  transition: background 0.3s ease-in-out, border 0.3s ease-in-out;
 }
 
 .drop-zone:hover {
-  background-color: rgba(0, 123, 255, 0.1);
+  background-color: rgba(0, 123, 255, 0.05);
+  border-color: #ff6600;
+}
+
+.upload-icon {
+  font-size: 32px;
+  color: #ff6600;
+  margin-bottom: 10px;
 }
 
 .file-input {
@@ -34,6 +45,21 @@
   height: 100%;
   opacity: 0;
   cursor: pointer;
+}
+
+.drop-text {
+  font-size: 16px;
+  color: #333;
+}
+
+.browse-link {
+  color: #6c63ff;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.browse-link:hover {
+  text-decoration: underline;
 }
 
 .action-buttons {
@@ -82,6 +108,11 @@
   border-radius: 10px;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   background: #fff;
+  transition: transform 0.3s ease-in-out;
+}
+
+.image-card:hover {
+  transform: scale(1.05);
 }
 
 .image-info {
@@ -91,8 +122,9 @@
 
 canvas {
   border: 1px solid #ddd;
-  width: 200px; /* Fixed preview width */
-  height: 100px; /* Fixed preview height */
+  width: 200px;
+  height: 100px;
   border-radius: 5px;
   display: block;
+  background: white;
 }
