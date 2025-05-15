@@ -18,7 +18,7 @@ const ImageUpscaler = () => {
           const minHeight = 1536;
           const scaleWidth = minWidth / img.width;
           const scaleHeight = minHeight / img.height;
-          const scaleFactor = Math.max(scaleWidth, scaleHeight, 2);
+          const scaleFactor = Math.max(scaleWidth, scaleHeight, 1);
 
           const newWidth = Math.round(img.width * scaleFactor);
           const newHeight = Math.round(img.height * scaleFactor);
