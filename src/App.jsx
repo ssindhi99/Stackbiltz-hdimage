@@ -2,7 +2,7 @@ import "./App.css";
 import NavigationBar from "./pages/NavigationBar";
 import HomePage from "./pages/HomePage";
 import ImageUpscaler from "./components/ImageUpscaler";
-import ImageEditor from "./components/ImageEditor";
+import ImageResize from "./components/ImageEditor";
 import ImageMerger from "./components/ImageMerger";
 
 import {
@@ -11,6 +11,7 @@ import {
   Route,
   Link,
 } from "react-router-dom";
+import ImageResizer from "./components/ImageResizer";
 
 function App() {
   const router = createBrowserRouter([
@@ -29,12 +30,16 @@ function App() {
         },
         {
           path: "resize",
-          element: <ImageEditor />,
+          element: <ImageResize />,
         },
 
         {
           path: "image-merge",
           element: <ImageMerger />,
+        },
+        {
+          path: "image-Resize",
+          element: <ImageResizer />,
         },
       ],
     },

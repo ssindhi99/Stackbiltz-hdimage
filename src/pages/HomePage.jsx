@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { FiUploadCloud, FiEdit, FiImage, FiSettings } from "react-icons/fi";
 import "./HomePage.scss";
+import ImageUpscaler from "../components/ImageUpscaler";
 
 const HomePage = () => {
   return (
@@ -23,15 +24,13 @@ const HomePage = () => {
       </section>
 
       {/* Upload Section */}
+
       <section className="upload">
-        <div className="upload-content">
+        <div className="">
           <h1>Transform Your Photos Instantly</h1>
           <p>AI-powered photo enhancement with stunning results.</p>
           <div className="upload-box">
-            <FiUploadCloud className="upload-icon" />
-            <p>
-              Drag & Drop Your Image or <span>Browse</span>
-            </p>
+            <ImageUpscaler />
           </div>
         </div>
       </section>

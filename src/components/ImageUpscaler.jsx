@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import "./ImageUpscaler.css";
+import { FiUploadCloud } from "react-icons/fi";
 
 const ImageUpscaler = () => {
   const [images, setImages] = useState([]);
@@ -8,121 +9,91 @@ const ImageUpscaler = () => {
   const handleFiles = (files) => {
     const fileArray = Array.from(files);
     const newImages = fileArray.map((file) => {
-      const objectURL = URL.createObjectURL(file);
-      const img = new Image();
-      img.src = objectURL;
-
       return new Promise((resolve) => {
+        const objectURL = URL.createObjectURL(file);
+        const img = new Image();
+        img.src = objectURL;
         img.onload = () => {
-          const minWidth = 1600;
-          const minHeight = 1200;
-          const scaleWidth = minWidth / img.width;
-          const scaleHeight = minHeight / img.height;
-          const scaleFactor = Math.max(scaleWidth, scaleHeight, 2);
-
-          const newWidth = Math.round(img.width * scaleFactor);
-          const newHeight = Math.round(img.height * scaleFactor);
-
+          const scaleFactor = Math.max(1600 / img.width, 1200 / img.height, 2);
           resolve({
             id: file.name + Date.now(),
             src: objectURL,
             fileType: file.type,
             fileName: file.name,
             originalSize: { width: img.width, height: img.height },
-            upscaledSize: { width: newWidth, height: newHeight },
+            upscaledSize: {
+              width: Math.round(img.width * scaleFactor),
+              height: Math.round(img.height * scaleFactor),
+            },
           });
         };
       });
     });
 
-    Promise.all(newImages).then((result) => setImages([...images, ...result]));
+    Promise.all(newImages).then((result) =>
+      setImages((prev) => [...prev, ...result])
+    );
   };
 
-  const handleImageUpload = (event) => {
-    handleFiles(event.target.files);
-  };
-
+  const handleImageUpload = (event) => handleFiles(event.target.files);
   const handleDrop = (event) => {
     event.preventDefault();
     handleFiles(event.dataTransfer.files);
   };
 
-  const handleDragOver = (event) => {
-    event.preventDefault();
-  };
-
-  const renderCanvas = (image, isPreview = false) => {
-    if (!canvasRefs.current[image.id]) return;
-
+  const renderCanvas = (image) => {
     const canvas = canvasRefs.current[image.id];
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
-
-    const width = isPreview ? 200 : image.upscaledSize.width;
-    const height = isPreview ? 100 : image.upscaledSize.height;
-
-    canvas.width = width;
-    canvas.height = height;
-
+    canvas.width = 200;
+    canvas.height = 100;
     const img = new Image();
     img.src = image.src;
     img.onload = () => {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
-      ctx.drawImage(img, 0, 0, width, height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     };
   };
+
+  useEffect(() => {
+    images.forEach(renderCanvas);
+  }, [images]);
 
   const downloadAllImages = () => {
     images.forEach((image) => {
       const offscreenCanvas = document.createElement("canvas");
-      const offscreenCtx = offscreenCanvas.getContext("2d");
-
+      const ctx = offscreenCanvas.getContext("2d");
       offscreenCanvas.width = image.upscaledSize.width;
       offscreenCanvas.height = image.upscaledSize.height;
-
       const img = new Image();
       img.src = image.src;
       img.onload = () => {
-        offscreenCtx.imageSmoothingEnabled = true;
-        offscreenCtx.imageSmoothingQuality = "high";
-        offscreenCtx.drawImage(
-          img,
-          0,
-          0,
-          offscreenCanvas.width,
-          offscreenCanvas.height
-        );
-
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
         offscreenCanvas.toBlob((blob) => {
           const link = document.createElement("a");
-          const fileName = `${image.fileName.split(".")[0]}_HD.${
+          link.href = URL.createObjectURL(blob);
+          link.download = `${image.fileName.split(".")[0]}_HD.${
             image.fileType.split("/")[1] || "png"
           }`;
-
-          link.href = URL.createObjectURL(blob);
-          link.download = fileName;
           link.click();
-
           URL.revokeObjectURL(link.href);
         }, image.fileType);
       };
     });
   };
 
-  const removeAllImages = () => setImages([]);
-
   return (
     <div
       className="image-upscaler"
       onDrop={handleDrop}
-      onDragOver={handleDragOver}
+      onDragOver={(e) => e.preventDefault()}
     >
-      <div
-        className="drop-zone"
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-      >
-        Drag & Drop or Click to Select Images
+      <div className="drop-zone">
+        <FiUploadCloud className="upload-icon" />
+        <p>Drag & Drop or Click to Select Images</p>
         <input
           type="file"
           accept="image/*"
@@ -137,37 +108,29 @@ const ImageUpscaler = () => {
           <button className="download-btn" onClick={downloadAllImages}>
             Download All HD Images
           </button>
-          <button className="remove-btn" onClick={removeAllImages}>
+          <button className="remove-btn" onClick={() => setImages([])}>
             New Images
           </button>
         </div>
       )}
 
-      {images.length > 0 && (
-        <div className="image-list">
-          {images.map((image) => (
-            <div key={image.id} className="image-card">
-              <div className="image-info">
-                <p>
-                  <strong>Original:</strong> {image.originalSize.width} x{" "}
-                  {image.originalSize.height}px
-                </p>
-                <p>
-                  <strong>Upscaled:</strong> {image.upscaledSize.width} x{" "}
-                  {image.upscaledSize.height}px
-                </p>
-              </div>
-
-              <canvas
-                ref={(el) => {
-                  canvasRefs.current[image.id] = el;
-                  renderCanvas(image, true);
-                }}
-              />
+      <div className="image-list">
+        {images.map((image) => (
+          <div key={image.id} className="image-card">
+            <div className="image-info">
+              <p>
+                <strong>Original:</strong> {image.originalSize.width} x{" "}
+                {image.originalSize.height}px
+              </p>
+              <p>
+                <strong>Upscaled:</strong> {image.upscaledSize.width} x{" "}
+                {image.upscaledSize.height}px
+              </p>
             </div>
-          ))}
-        </div>
-      )}
+            <canvas ref={(el) => (canvasRefs.current[image.id] = el)} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
