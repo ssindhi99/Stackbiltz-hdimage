@@ -20,7 +20,7 @@ const HeaderBar = () => {
 
         <nav className={`nav-menu ${menuOpen ? "active" : ""}`}>
           <ul>
-            {["/", "/Upscaler", "/resize", "/image-merge", "/image-Resize"].map(
+            {["/", "/Upscaler", "/resize", "/image-merge", "/image-Resize", "/image-fixer"].map(
               (path, index) => (
                 <li key={index}>
                   <Link to={path}>{path.replace("/", "") || "Home"}</Link>

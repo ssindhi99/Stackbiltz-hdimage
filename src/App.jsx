@@ -12,6 +12,7 @@ import {
   Link,
 } from "react-router-dom";
 import ImageResizer from "./components/ImageResizer";
+import ImageFixer from "./components/ImageFixer";
 
 function App() {
   const router = createBrowserRouter([
@@ -40,6 +41,11 @@ function App() {
         {
           path: "image-Resize",
           element: <ImageResizer />,
+        },
+
+        {
+          path: "image-fixer",
+          element: <ImageFixer />,
         },
       ],
     },

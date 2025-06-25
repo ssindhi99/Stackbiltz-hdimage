@@ -14,7 +14,7 @@ const ImageUpscaler = () => {
         const img = new Image();
         img.src = objectURL;
         img.onload = () => {
-          const scaleFactor = Math.max(1600 / img.width, 1200 / img.height, 2);
+          const scaleFactor = Math.max(1600 / img.width, 1200 / img.height, 1);
           resolve({
             id: file.name + Date.now(),
             src: objectURL,
