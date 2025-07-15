@@ -1,296 +1,395 @@
-import { useState, useRef, useEffect } from "react";
-// Assuming ImageUpscaler.css exists and provides basic styling for the layout
-// and elements like .drop-zone, .upload-icon, .action-buttons, .download-btn, etc.
-import "./ImageUpscaler.css";
-// Importing a Feather icon for the upload cloud
-import { FiUploadCloud } from "react-icons/fi";
+import React, { useRef, useState, useCallback } from "react";
 
-const ImageFixer = () => {
-  // State to store the list of images, each with its properties
-  const [images, setImages] = useState([]);
-  // Ref to hold references to canvas elements for dynamic drawing
-  const canvasRefs = useRef({});
+const QUALITY_LABELS = {
+  good: "WhatsApp HD / Original · Good Quality Photo",
+  medium: "WhatsApp SD · Medium Quality Photo",
+  low: "WhatsApp · Low Quality Photo",
+  other: "Other · Unknown/Blank",
+};
+const MIN_GOOD_WIDTH = 1920;
+const MIN_GOOD_HEIGHT = 1080;
+const MIN_GOOD_MP = 2; // 2 Megapixels
+const MIN_IMAGE_PX = 1203; // Enforced minimum on both sides for converted image
 
-  /**
-   * Handles files from input or drag-and-drop.
-   * Processes each file to create an image object with original and initial upscaled sizes.
-   * @param {FileList} files - The FileList object containing selected files.
-   */
-  const handleFiles = (files) => {
-    const fileArray = Array.from(files);
-    // Map each file to a Promise that resolves with the image data
-    const newImages = fileArray.map((file) => {
-      return new Promise((resolve) => {
-        // Create a URL for the image file
-        const objectURL = URL.createObjectURL(file);
-        const img = new Image();
-        img.src = objectURL;
+function getPhotoQuality(width, height) {
+  if (!width || !height) return "other";
+  const mp = (width * height) / 1_000_000;
+  const longest = Math.max(width, height);
 
-        // Once the image is loaded, calculate its sizes
-        img.onload = () => {
-          // Define a target resolution for initial upscaling (e.g., Full HD for width, and proportional height)
-          // This is a base for the *preview* and general upscaling, not the final 4:3 download size.
-          const targetWidth = 1920; // Example target width for upscaling
-          const targetHeight = 1440; // Example target height for upscaling (1920 / 4 * 3 = 1440)
+  if (
+    longest >= 3000 &&
+    mp >= MIN_GOOD_MP &&
+    width >= MIN_IMAGE_PX &&
+    height >= MIN_IMAGE_PX
+  )
+    return "good";
+  if (
+    longest >= 1600 &&
+    mp >= 1 &&
+    width >= MIN_IMAGE_PX &&
+    height >= MIN_IMAGE_PX
+  )
+    return "medium";
+  if (longest >= MIN_IMAGE_PX || Math.max(width, height) >= MIN_IMAGE_PX)
+    return "low";
+  return "other";
+}
 
-          // Calculate scale factor to fit within target dimensions, ensuring at least 1x scaling
-          const scaleFactor = Math.max(
-            targetWidth / img.width,
-            targetHeight / img.height,
-            1
-          );
+function getTargetSize(width, height) {
+  let scaleW = MIN_GOOD_WIDTH / width;
+  let scaleH = MIN_GOOD_HEIGHT / height;
+  let scaleMinW = MIN_IMAGE_PX / width;
+  let scaleMinH = MIN_IMAGE_PX / height;
+  let scaleMP = Math.sqrt((MIN_GOOD_MP * 1_000_000) / (width * height));
+  const scale = Math.max(scaleW, scaleH, scaleMinW, scaleMinH, scaleMP, 1);
+  return {
+    width: Math.round(width * scale),
+    height: Math.round(height * scale),
+  };
+}
 
-          resolve({
-            id: file.name + Date.now(), // Unique ID for the image
-            src: objectURL, // Object URL for image display
-            fileType: file.type, // MIME type of the file
-            fileName: file.name, // Original file name
-            originalSize: { width: img.width, height: img.height }, // Original dimensions
-            upscaledSize: {
-              width: Math.round(img.width * scaleFactor), // Initial upscaled width
-              height: Math.round(img.height * scaleFactor), // Initial upscaled height
-            },
-          });
-        };
-      });
-    });
-
-    // After all images are processed, update the state
-    Promise.all(newImages).then((result) =>
-      setImages((prev) => [...prev, ...result])
+function getHdFileName(originalName) {
+  const lastDot = originalName.lastIndexOf(".");
+  if (lastDot > 0) {
+    return (
+      originalName.substring(0, lastDot) +
+      "-hd" +
+      originalName.substring(lastDot)
     );
-  };
+  } else {
+    return originalName + "-hd.jpg";
+  }
+}
 
-  /**
-   * Handles image file selection via the input element.
-   * @param {Event} event - The change event from the file input.
-   */
-  const handleImageUpload = (event) => handleFiles(event.target.files);
+function resizeImageToGoodQuality(img, cb, fileName) {
+  const { width: targetW, height: targetH } = getTargetSize(
+    img.width,
+    img.height
+  );
+  if (!img.width || !img.height) {
+    cb(null, 0, 0);
+    return;
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = targetW;
+  canvas.height = targetH;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, targetW, targetH);
+  canvas.toBlob(
+    (blob) => {
+      cb(blob, targetW, targetH, getHdFileName(fileName));
+    },
+    "image/jpeg",
+    0.95
+  );
+}
 
-  /**
-   * Handles image file drop onto the drop zone.
-   * Prevents default behavior to allow drop.
-   * @param {Event} event - The drag event.
-   */
-  const handleDrop = (event) => {
-    event.preventDefault();
-    handleFiles(event.dataTransfer.files);
-  };
+export default function ImageFixer() {
+  const [images, setImages] = useState([]);
+  const [converted, setConverted] = useState({});
+  const [processing, setProcessing] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const inputRef = useRef();
 
-  /**
-   * Renders a small preview of the image on a canvas.
-   * This canvas is for display purposes within the app, not for the final download.
-   * @param {Object} image - The image object to render.
-   */
-  const renderCanvas = (image) => {
-    const canvas = canvasRefs.current[image.id];
-    if (!canvas) return; // Exit if canvas element is not yet available
-    const ctx = canvas.getContext("2d");
-
-    // Set canvas dimensions for a fixed-size preview
-    canvas.width = 200;
-    canvas.height = 150; // Use a 4:3 ratio for the preview canvas itself (200 / 4 * 3 = 150)
-
-    const img = new Image();
-    img.src = image.src;
-
-    img.onload = () => {
-      // Enable high-quality image smoothing for better visual scaling
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-
-      // Calculate how to draw the image to fit the 4:3 preview canvas,
-      // potentially cropping to maintain aspect ratio.
-      const canvasRatio = canvas.width / canvas.height;
-      const imageRatio = img.width / img.height;
-
-      let sx = 0,
-        sy = 0,
-        sWidth = img.width,
-        sHeight = img.height;
-      let dx = 0,
-        dy = 0,
-        dWidth = canvas.width,
-        dHeight = canvas.height;
-
-      if (imageRatio > canvasRatio) {
-        // Image is wider than canvas, crop horizontally
-        sWidth = img.height * canvasRatio;
-        sx = (img.width - sWidth) / 2;
-      } else if (imageRatio < canvasRatio) {
-        // Image is taller than canvas, crop vertically
-        sHeight = img.width / canvasRatio;
-        sy = (img.height - sHeight) / 2;
-      }
-      // Draw the image, applying the calculated cropping
-      ctx.drawImage(img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
-    };
-  };
-
-  // Effect hook to render canvases whenever the 'images' state changes
-  useEffect(() => {
-    images.forEach(renderCanvas);
-  }, [images]); // Dependency array: re-run when 'images' changes
-
-  /**
-   * Initiates download for all processed images.
-   * Each image will be resized/cropped to a 4:3 aspect ratio and upscaled.
-   */
-  const downloadAllImages = () => {
-    images.forEach((image) => {
-      // Create an offscreen canvas for processing the image before download
-      const offscreenCanvas = document.createElement("canvas");
-      const ctx = offscreenCanvas.getContext("2d");
-      const img = new Image();
-      img.src = image.src;
-
+  // Load user images and auto-convert to good quality
+  const handleFiles = useCallback((fileList) => {
+    setImages([]);
+    setConverted({});
+    setProcessing(true);
+    const files = Array.from(fileList);
+    let loaded = 0;
+    let imageInfos = [];
+    files.forEach((file, idx) => {
+      const img = new window.Image();
       img.onload = () => {
-        const originalWidth = img.width;
-        const originalHeight = img.height;
-
-        // Define the desired target aspect ratio (4:3)
-        const targetRatio = 4 / 3;
-
-        // Determine initial width and height based on the original image,
-        // maintaining the 4:3 ratio. This will be the largest 4:3 rectangle
-        // that can be fitted *within* the original image's dimensions.
-        let calculatedWidth;
-        let calculatedHeight;
-        const originalRatio = originalWidth / originalHeight;
-
-        if (originalRatio > targetRatio) {
-          // Original image is wider than 4:3, so its height limits the 4:3 box.
-          calculatedHeight = originalHeight;
-          calculatedWidth = Math.round(calculatedHeight * targetRatio);
-        } else {
-          // Original image is taller or equal to 4:3, so its width limits the 4:3 box.
-          calculatedWidth = originalWidth;
-          calculatedHeight = Math.round(calculatedWidth / targetRatio);
-        }
-
-        // Define a minimum target resolution for the downloaded image to ensure high quality.
-        // We'll use the previously calculated upscaledSize, but ensure a minimum of 1920x1440 for 4:3.
-        const minDownloadWidth = Math.max(image.upscaledSize.width, 1920);
-        const minDownloadHeight = Math.max(image.upscaledSize.height, 1440);
-
-        // Calculate a final scaling factor to upscale the 'calculated' 4:3 dimensions
-        // to at least the 'minDownload' dimensions, while maintaining the 4:3 ratio.
-        const finalScaleFactor = Math.max(
-          minDownloadWidth / calculatedWidth,
-          minDownloadHeight / calculatedHeight,
-          1 // Ensure we always scale up if the calculated 4:3 is smaller than current
+        const width = img.width;
+        const height = img.height;
+        const quality = getPhotoQuality(width, height);
+        const label = QUALITY_LABELS[quality];
+        const id = `${file.name}_${file.size}_${file.lastModified}`;
+        const src = URL.createObjectURL(file);
+        const { width: newWidth, height: newHeight } = getTargetSize(
+          width,
+          height
         );
 
-        // Determine the final dimensions for the download canvas
-        const finalWidth = Math.round(calculatedWidth * finalScaleFactor);
-        const finalHeight = Math.round(calculatedHeight * finalScaleFactor);
+        imageInfos[idx] = {
+          file,
+          src,
+          width,
+          height,
+          quality,
+          label,
+          id,
+          newWidth,
+          newHeight,
+          fileName: file.name,
+        };
 
-        // Set the offscreen canvas dimensions to the final calculated 4:3 dimensions
-        offscreenCanvas.width = finalWidth;
-        offscreenCanvas.height = finalHeight;
+        const autoImg = new window.Image();
+        autoImg.onload = () => {
+          resizeImageToGoodQuality(
+            autoImg,
+            (blob, w, h, hdName) => {
+              setConverted((prev) => ({
+                ...prev,
+                [id]: {
+                  src: URL.createObjectURL(blob),
+                  width: w,
+                  height: h,
+                  blob,
+                  name: hdName,
+                },
+              }));
+            },
+            file.name
+          );
+        };
+        autoImg.src = src;
 
-        // Enable high-quality image smoothing for scaling
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-
-        // Calculate source (sx, sy, sWidth, sHeight) and destination (dx, dy, dWidth, dHeight)
-        // parameters for drawImage to crop the original image to fit the 4:3 canvas.
-        let sx = 0,
-          sy = 0,
-          sWidth = originalWidth,
-          sHeight = originalHeight;
-        let dx = 0,
-          dy = 0,
-          dWidth = finalWidth,
-          dHeight = finalHeight;
-
-        // Adjust source dimensions if the original image aspect ratio doesn't match the target 4:3
-        const outputCanvasRatio = finalWidth / finalHeight;
-        if (originalRatio > outputCanvasRatio) {
-          // Original image is wider than the target 4:3, so crop original horizontally
-          sWidth = originalHeight * outputCanvasRatio;
-          sx = (originalWidth - sWidth) / 2; // Center the crop
-        } else if (originalRatio < outputCanvasRatio) {
-          // Original image is taller than the target 4:3, so crop original vertically
-          sHeight = originalWidth / outputCanvasRatio;
-          sy = (originalHeight - sHeight) / 2; // Center the crop
+        loaded += 1;
+        if (loaded === files.length) {
+          setImages(imageInfos);
+          setProcessing(false);
         }
-
-        // Draw the cropped portion of the original image onto the final-sized canvas
-        ctx.drawImage(img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
-
-        // Convert the canvas content to a Blob and trigger download
-        offscreenCanvas.toBlob(
-          (blob) => {
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            // Construct download file name with "_4x3" suffix
-            link.download = `${image.fileName.split(".")[0]}_4x3.${
-              image.fileType.split("/")[1] || "png" // Default to png if type is unknown
-            }`;
-            link.click(); // Programmatically click the link to start download
-            URL.revokeObjectURL(link.href); // Clean up the object URL
-          },
-          image.fileType // Specify the output image type (e.g., 'image/jpeg', 'image/png')
-        );
       };
+      img.onerror = () => {
+        imageInfos[idx] = {
+          error: "Failed to load image.",
+          file,
+          id: `${file.name}_${file.size}_${file.lastModified}`,
+        };
+        loaded += 1;
+        if (loaded === files.length) {
+          setImages(imageInfos);
+          setProcessing(false);
+        }
+      };
+      img.src = URL.createObjectURL(file);
     });
+  }, []);
+
+  // "Download All Images" downloads all converted HD images
+  const handleDownloadAllConverted = () => {
+    images.forEach((img) => {
+      const conv = converted[img.id];
+      if (!conv || !conv.src) return;
+      const a = document.createElement("a");
+      a.href = conv.src;
+      a.download = conv.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+  };
+
+  const handleNewImageClick = () => {
+    setImages([]);
+    setConverted({});
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  };
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+  };
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
   };
 
   return (
-    // Main container for the image upscaler, handling drag-and-drop
     <div
-      className="image-upscaler"
-      onDrop={handleDrop}
-      onDragOver={(e) => e.preventDefault()} // Prevent default to allow drop
+      style={{
+        margin: "40px auto",
+        fontFamily: "Inter,Segoe UI,Arial,sans-serif",
+        background: "#fff",
+        borderRadius: 16,
+        boxShadow: "0 8px 32px #0001, 0 1.5px 7px #1976d211",
+        padding: "32px 22px 40px 22px",
+      }}
     >
-      {/* Drop zone area for uploading images */}
-      <div className="drop-zone">
-        <FiUploadCloud className="upload-icon" /> {/* Upload icon */}
-        <p>Drag & Drop or Click to Select Images</p>
+      <h2
+        style={{
+          fontWeight: 700,
+          color: "#1976d2",
+          marginBottom: 8,
+          fontSize: 28,
+          letterSpacing: "-1px",
+        }}
+      >
+        ImageFixer{" "}
+        <span style={{ color: "#333", fontWeight: 600, fontSize: 19 }}>
+          — Uploaded Images Only
+        </span>
+      </h2>
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        tabIndex={0}
+        style={{
+          padding: "40px 0 28px 0",
+          background: dragActive ? "#e3f2fd" : "#f5f8fa",
+          border: dragActive ? "2.5px dashed #1976d2" : "2.5px dashed #b0bec5",
+          borderRadius: 11,
+          textAlign: "center",
+          cursor: "pointer",
+          marginBottom: 18,
+          outline: dragActive ? "2px solid #1976d2" : "none",
+          transition: "all 0.15s",
+        }}
+        onClick={() => inputRef.current && inputRef.current.click()}
+      >
         <input
+          ref={inputRef}
           type="file"
-          accept="image/*" // Accept all image types
-          multiple // Allow multiple file selection
-          onChange={handleImageUpload} // Handle file selection
-          className="file-input"
+          accept="image/*"
+          multiple
+          style={{ display: "none" }}
+          onChange={(e) => handleFiles(e.target.files)}
         />
+        <div
+          style={{
+            color: "#1976d2",
+            fontWeight: 600,
+            fontSize: 20,
+            marginBottom: 5,
+          }}
+        >
+          Drag and drop images here
+          <br />
+          or{" "}
+          <span
+            style={{
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+          >
+            browse files
+          </span>
+        </div>
+        <div style={{ color: "#555", fontSize: 14, fontWeight: 400 }}>
+          JPG, PNG or GIF. Images will be auto-converted to{" "}
+          <b>good quality resolution</b> (min 1203px per side).
+        </div>
       </div>
-
-      {/* Action buttons (Download, New Images) only shown if images are present */}
-      {images.length > 0 && (
-        <div className="action-buttons">
-          <button className="download-btn" onClick={downloadAllImages}>
-            Download All 4:3 Images
-          </button>
-          <button className="remove-btn" onClick={() => setImages([])}>
-            New Images
-          </button>
+      <div
+        style={{
+          marginTop: 12,
+          marginBottom: 16,
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+        }}
+      >
+        <button
+          style={{
+            padding: "10px 22px",
+            background: "#388e3c",
+            color: "#fff",
+            border: "none",
+            borderRadius: 6,
+            fontWeight: "bold",
+            fontSize: 17,
+            boxShadow: "0 1.5px 8px #388e3c22",
+            cursor: images.length === 0 ? "not-allowed" : "pointer",
+            opacity: images.length === 0 ? 0.7 : 1,
+          }}
+          onClick={handleDownloadAllConverted}
+          disabled={images.length === 0}
+        >
+          Download All Images
+        </button>
+        <button
+          style={{
+            padding: "10px 22px",
+            background: "#1976d2",
+            color: "#fff",
+            border: "none",
+            borderRadius: 6,
+            fontWeight: "bold",
+            fontSize: 17,
+            boxShadow: "0 1.5px 8px #1976d222",
+            cursor: "pointer",
+          }}
+          onClick={handleNewImageClick}
+        >
+          New Image
+        </button>
+      </div>
+      {processing && (
+        <div
+          style={{
+            color: "#1976d2",
+            fontWeight: 600,
+            fontSize: 18,
+            margin: "36px 0 10px 0",
+          }}
+        >
+          Processing images...
         </div>
       )}
-
-      {/* List of uploaded image previews and information */}
-      <div className="image-list">
-        {images.map((image) => (
-          <div key={image.id} className="image-card">
-            <div className="image-info">
-              <p>
-                <strong>Original:</strong> {image.originalSize.width} x{" "}
-                {image.originalSize.height}px
-              </p>
-              <p>
-                {/* Displaying the initially upscaled size for general reference */}
-                <strong>Preview Upscaled:</strong> {image.upscaledSize.width} x{" "}
-                {image.upscaledSize.height}px
-              </p>
-            </div>
-            {/* Canvas for displaying image preview */}
-            <canvas ref={(el) => (canvasRefs.current[image.id] = el)} />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+        {images.map((img, idx) => (
+          <div
+            key={img.id}
+            style={{
+              width: 270,
+              border: "1.5px solid #e3e6ea",
+              borderRadius: 10,
+              boxShadow: "0 3px 8px #1976d211",
+              padding: 18,
+              marginBottom: 28,
+              background: "#f9fbfc",
+              transition: "box-shadow 0.12s",
+              position: "relative",
+            }}
+          >
+            {img.error ? (
+              <div style={{ color: "red" }}>{img.error}</div>
+            ) : (
+              <>
+                <img
+                  src={img.src}
+                  alt="preview"
+                  style={{
+                    maxWidth: 220,
+                    maxHeight: 170,
+                    display: "block",
+                    margin: "0 auto 12px auto",
+                    border: "1.5px solid #cfd8dc",
+                    background: "#f8f8f8",
+                    borderRadius: 5,
+                    boxShadow: "0 1px 4px #1976d211",
+                  }}
+                />
+                <div
+                  style={{ marginBottom: 4, fontSize: 14, color: "#37474f" }}
+                >
+                  <b>Current Resolution:</b> {img.width} × {img.height}
+                </div>
+                <div
+                  style={{ marginBottom: 4, fontSize: 14, color: "#37474f" }}
+                >
+                  <b>New Resolution:</b> {img.newWidth} × {img.newHeight}
+                </div>
+                {/* Download button per photo removed */}
+              </>
+            )}
           </div>
         ))}
       </div>
     </div>
   );
-};
-
-export default ImageFixer;
+}
