@@ -8,32 +8,8 @@ const QUALITY_LABELS = {
 };
 const MIN_GOOD_WIDTH = 1920;
 const MIN_GOOD_HEIGHT = 1080;
-const MIN_GOOD_MP = 2; // 2 Megapixels
-const MIN_IMAGE_PX = 1203; // Enforced minimum on both sides for converted image
-
-function getPhotoQuality(width, height) {
-  if (!width || !height) return "other";
-  const mp = (width * height) / 1_000_000;
-  const longest = Math.max(width, height);
-
-  if (
-    longest >= 3000 &&
-    mp >= MIN_GOOD_MP &&
-    width >= MIN_IMAGE_PX &&
-    height >= MIN_IMAGE_PX
-  )
-    return "good";
-  if (
-    longest >= 1600 &&
-    mp >= 1 &&
-    width >= MIN_IMAGE_PX &&
-    height >= MIN_IMAGE_PX
-  )
-    return "medium";
-  if (longest >= MIN_IMAGE_PX || Math.max(width, height) >= MIN_IMAGE_PX)
-    return "low";
-  return "other";
-}
+const MIN_GOOD_MP = 2;
+const MIN_IMAGE_PX = 1203;
 
 function getTargetSize(width, height) {
   let scaleW = MIN_GOOD_WIDTH / width;
@@ -88,14 +64,16 @@ export default function ImageFixer() {
   const [images, setImages] = useState([]);
   const [converted, setConverted] = useState({});
   const [processing, setProcessing] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef();
 
-  // Load user images and auto-convert to good quality
+  // Only show upload button at first
+  const [hasUploaded, setHasUploaded] = useState(false);
+
   const handleFiles = useCallback((fileList) => {
     setImages([]);
     setConverted({});
     setProcessing(true);
+    setHasUploaded(true);
     const files = Array.from(fileList);
     let loaded = 0;
     let imageInfos = [];
@@ -104,8 +82,6 @@ export default function ImageFixer() {
       img.onload = () => {
         const width = img.width;
         const height = img.height;
-        const quality = getPhotoQuality(width, height);
-        const label = QUALITY_LABELS[quality];
         const id = `${file.name}_${file.size}_${file.lastModified}`;
         const src = URL.createObjectURL(file);
         const { width: newWidth, height: newHeight } = getTargetSize(
@@ -118,8 +94,6 @@ export default function ImageFixer() {
           src,
           width,
           height,
-          quality,
-          label,
           id,
           newWidth,
           newHeight,
@@ -169,7 +143,6 @@ export default function ImageFixer() {
     });
   }, []);
 
-  // "Download All Images" downloads all converted HD images
   const handleDownloadAllConverted = () => {
     images.forEach((img) => {
       const conv = converted[img.id];
@@ -186,26 +159,7 @@ export default function ImageFixer() {
   const handleNewImageClick = () => {
     setImages([]);
     setConverted({});
-  };
-
-  // Drag and drop handlers
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(true);
-  };
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-  };
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFiles(e.dataTransfer.files);
-    }
+    setHasUploaded(false);
   };
 
   return (
@@ -219,177 +173,153 @@ export default function ImageFixer() {
         padding: "32px 22px 40px 22px",
       }}
     >
-      <h2
-        style={{
-          fontWeight: 700,
-          color: "#1976d2",
-          marginBottom: 8,
-          fontSize: 28,
-          letterSpacing: "-1px",
-        }}
-      >
-        ImageFixer{" "}
-        <span style={{ color: "#333", fontWeight: 600, fontSize: 19 }}>
-          — Uploaded Images Only
-        </span>
-      </h2>
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        tabIndex={0}
-        style={{
-          padding: "40px 0 28px 0",
-          background: dragActive ? "#e3f2fd" : "#f5f8fa",
-          border: dragActive ? "2.5px dashed #1976d2" : "2.5px dashed #b0bec5",
-          borderRadius: 11,
-          textAlign: "center",
-          cursor: "pointer",
-          marginBottom: 18,
-          outline: dragActive ? "2px solid #1976d2" : "none",
-          transition: "all 0.15s",
-        }}
-        onClick={() => inputRef.current && inputRef.current.click()}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          style={{ display: "none" }}
-          onChange={(e) => handleFiles(e.target.files)}
-        />
-        <div
-          style={{
-            color: "#1976d2",
-            fontWeight: 600,
-            fontSize: 20,
-            marginBottom: 5,
-          }}
-        >
-          Drag and drop images here
-          <br />
-          or{" "}
-          <span
+      {/* Only show upload button at first */}
+      {!hasUploaded && (
+        <div style={{ marginBottom: 28, textAlign: "center" }}>
+          <button
             style={{
-              textDecoration: "underline",
+              padding: "13px 32px",
+              background: "#1976d2",
+              color: "#fff",
+              border: "none",
+              borderRadius: 7,
+              fontWeight: 600,
+              fontSize: 18,
+              boxShadow: "0 1.5px 8px #1976d222",
               cursor: "pointer",
+              marginRight: 14,
             }}
+            onClick={() => inputRef.current && inputRef.current.click()}
           >
-            browse files
-          </span>
-        </div>
-        <div style={{ color: "#555", fontSize: 14, fontWeight: 400 }}>
-          JPG, PNG or GIF. Images will be auto-converted to{" "}
-          <b>good quality resolution</b> (min 1203px per side).
-        </div>
-      </div>
-      <div
-        style={{
-          marginTop: 12,
-          marginBottom: 16,
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-        }}
-      >
-        <button
-          style={{
-            padding: "10px 22px",
-            background: "#388e3c",
-            color: "#fff",
-            border: "none",
-            borderRadius: 6,
-            fontWeight: "bold",
-            fontSize: 17,
-            boxShadow: "0 1.5px 8px #388e3c22",
-            cursor: images.length === 0 ? "not-allowed" : "pointer",
-            opacity: images.length === 0 ? 0.7 : 1,
-          }}
-          onClick={handleDownloadAllConverted}
-          disabled={images.length === 0}
-        >
-          Download All Images
-        </button>
-        <button
-          style={{
-            padding: "10px 22px",
-            background: "#1976d2",
-            color: "#fff",
-            border: "none",
-            borderRadius: 6,
-            fontWeight: "bold",
-            fontSize: 17,
-            boxShadow: "0 1.5px 8px #1976d222",
-            cursor: "pointer",
-          }}
-          onClick={handleNewImageClick}
-        >
-          New Image
-        </button>
-      </div>
-      {processing && (
-        <div
-          style={{
-            color: "#1976d2",
-            fontWeight: 600,
-            fontSize: 18,
-            margin: "36px 0 10px 0",
-          }}
-        >
-          Processing images...
+            Upload Images
+          </button>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            style={{ display: "none" }}
+            onChange={(e) => handleFiles(e.target.files)}
+          />
         </div>
       )}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
-        {images.map((img, idx) => (
+      {hasUploaded && (
+        <>
           <div
-            key={img.id}
             style={{
-              width: 270,
-              border: "1.5px solid #e3e6ea",
-              borderRadius: 10,
-              boxShadow: "0 3px 8px #1976d211",
-              padding: 18,
-              marginBottom: 28,
-              background: "#f9fbfc",
-              transition: "box-shadow 0.12s",
-              position: "relative",
+              marginTop: 12,
+              marginBottom: 16,
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
             }}
           >
-            {img.error ? (
-              <div style={{ color: "red" }}>{img.error}</div>
-            ) : (
-              <>
-                <img
-                  src={img.src}
-                  alt="preview"
-                  style={{
-                    maxWidth: 220,
-                    maxHeight: 170,
-                    display: "block",
-                    margin: "0 auto 12px auto",
-                    border: "1.5px solid #cfd8dc",
-                    background: "#f8f8f8",
-                    borderRadius: 5,
-                    boxShadow: "0 1px 4px #1976d211",
-                  }}
-                />
-                <div
-                  style={{ marginBottom: 4, fontSize: 14, color: "#37474f" }}
-                >
-                  <b>Current Resolution:</b> {img.width} × {img.height}
-                </div>
-                <div
-                  style={{ marginBottom: 4, fontSize: 14, color: "#37474f" }}
-                >
-                  <b>New Resolution:</b> {img.newWidth} × {img.newHeight}
-                </div>
-                {/* Download button per photo removed */}
-              </>
-            )}
+            <button
+              style={{
+                padding: "10px 22px",
+                background: "#388e3c",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                fontWeight: "bold",
+                fontSize: 17,
+                boxShadow: "0 1.5px 8px #388e3c22",
+                cursor: images.length === 0 ? "not-allowed" : "pointer",
+                opacity: images.length === 0 ? 0.7 : 1,
+              }}
+              onClick={handleDownloadAllConverted}
+              disabled={images.length === 0}
+            >
+              Download All Images
+            </button>
+            <button
+              style={{
+                padding: "10px 22px",
+                background: "#1976d2",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                fontWeight: "bold",
+                fontSize: 17,
+                boxShadow: "0 1.5px 8px #1976d222",
+                cursor: "pointer",
+              }}
+              onClick={handleNewImageClick}
+            >
+              New Image
+            </button>
           </div>
-        ))}
-      </div>
+          {processing && (
+            <div
+              style={{
+                color: "#1976d2",
+                fontWeight: 600,
+                fontSize: 18,
+                margin: "36px 0 10px 0",
+              }}
+            >
+              Processing images...
+            </div>
+          )}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+            {images.map((img, idx) => (
+              <div
+                key={img.id}
+                style={{
+                  width: 270,
+                  border: "1.5px solid #e3e6ea",
+                  borderRadius: 10,
+                  boxShadow: "0 3px 8px #1976d211",
+                  padding: 18,
+                  marginBottom: 28,
+                  background: "#f9fbfc",
+                  transition: "box-shadow 0.12s",
+                  position: "relative",
+                }}
+              >
+                {img.error ? (
+                  <div style={{ color: "red" }}>{img.error}</div>
+                ) : (
+                  <>
+                    <img
+                      src={img.src}
+                      alt="preview"
+                      style={{
+                        maxWidth: 220,
+                        maxHeight: 170,
+                        display: "block",
+                        margin: "0 auto 12px auto",
+                        border: "1.5px solid #cfd8dc",
+                        background: "#f8f8f8",
+                        borderRadius: 5,
+                        boxShadow: "0 1px 4px #1976d211",
+                      }}
+                    />
+                    <div
+                      style={{
+                        marginBottom: 4,
+                        fontSize: 14,
+                        color: "#37474f",
+                      }}
+                    >
+                      <b>Current Resolution:</b> {img.width} × {img.height}
+                    </div>
+                    <div
+                      style={{
+                        marginBottom: 4,
+                        fontSize: 14,
+                        color: "#37474f",
+                      }}
+                    >
+                      <b>New Resolution:</b> {img.newWidth} × {img.newHeight}
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
